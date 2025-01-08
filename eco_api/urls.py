@@ -1,13 +1,14 @@
 from django.urls import path, include
 from rest_framework import routers
-from rest_framework_simplejwt import views as jwt_views
-from . import views
+from eco_api import views
 
 router = routers.DefaultRouter()
-router.register(r'trips', views.TripViewSet)
+router.register(r'trips', views.TripViewSet, basename='trip')
+router.register(r'transport_types', views.TransportTypeViewSet, basename='transport_type')
+router.register(r'energy_sources', views.EnergySourceViewSet, basename='energy_source')
+router.register(r'users', views.UserViewSet, basename='user')
+
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'), # <- Здесь!
 ]
