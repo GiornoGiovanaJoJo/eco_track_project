@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Trip
 
 class TripSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True) # <- Добавляем это
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField()
     transport_type = serializers.CharField(max_length=100)
