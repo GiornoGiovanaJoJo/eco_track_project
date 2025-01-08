@@ -1,9 +1,11 @@
 import pytest
 from rest_framework import status
 from django.urls import reverse
-from eco_api.models import Trip
+from eco_api.models import Trip, User
 from eco_api.serializers import TripSerializer
 from rest_framework.test import APIClient
+from django.contrib.auth import get_user_model
+
 
 @pytest.fixture
 def api_client():
@@ -14,16 +16,12 @@ def api_client():
 @pytest.fixture
 def create_user():
     """Creates a user and returns it."""
-    from django.contrib.auth import get_user_model
-
     def _create_user(role='user', username="testuser", email="test@example.com"):
         User = get_user_model()
-        user = User(username=username, email=email)
+        user = User(username=username, email=email, role=role)
         user.set_password("testpass")
-        setattr(user, 'role', role)  # <-- Устанавливаем role через setattr()
         user.save()
         return user
-
     return _create_user
 
 
@@ -35,7 +33,7 @@ def get_access_token(api_client, create_user):
         url = reverse("token_obtain_pair")
         data = {"username": user.username, "password": "testpass"}
         response = api_client.post(url, data, format="json")
-        print(response.json())  # <-- Вывод для отладки
+        assert response.status_code == 200, response.content
         return response.json()["access"]
 
     return _get_access_token
@@ -50,7 +48,7 @@ def test_get_trips_unauthorized(api_client):
 
 @pytest.mark.django_db
 def test_get_trips_authorized(api_client, create_user, get_access_token):
-    user = create_user()  # <-- убрали передачу role
+    user = create_user()
     token = get_access_token(user)
     url = reverse("trip-list")
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -60,7 +58,7 @@ def test_get_trips_authorized(api_client, create_user, get_access_token):
 
 @pytest.mark.django_db
 def test_create_trip_admin(api_client, create_user, get_access_token):
-    user = create_user(role='admin')  # <--- Добавили роль
+    user = create_user(role='admin')
     token = get_access_token(user)
     trip_data = {
         "start_date": "2024-01-15T10:00:00",
@@ -70,7 +68,6 @@ def test_create_trip_admin(api_client, create_user, get_access_token):
         "passengers": 2,
         "energy_source": "gasoline"
     }
-    print(trip_data)  # <-- Вывод trip_data для проверки
     url = reverse("trip-list")
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     response = api_client.post(url, trip_data, format="json")
@@ -80,7 +77,7 @@ def test_create_trip_admin(api_client, create_user, get_access_token):
 
 @pytest.mark.django_db
 def test_create_trip_editor(api_client, create_user, get_access_token):
-    user = create_user(role='editor')  # <--- Добавили роль
+    user = create_user(role='editor')
     token = get_access_token(user)
     trip_data = {
         "start_date": "2024-02-20T10:00:00",
@@ -90,7 +87,6 @@ def test_create_trip_editor(api_client, create_user, get_access_token):
         "passengers": 1,
         "energy_source": "electricity"
     }
-    print(trip_data)  # <-- Вывод trip_data для проверки
     url = reverse("trip-list")
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     response = api_client.post(url, trip_data, format="json")
